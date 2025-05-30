@@ -1,5 +1,3 @@
-<!-- eslint-disable @typescript-eslint/no-explicit-any -->
-<!-- eslint-disable @typescript-eslint/no-unused-vars -->
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { Ckeditor, useCKEditorCloud } from '@ckeditor/ckeditor5-vue'
@@ -96,6 +94,7 @@ function CustomUploadAdapterPlugin(editor: Editor): void {
 }
 
 function ImgFluidClassPlugin(editor: Editor): void {
+  // Add the class during downcast (model -> view conversion)
   editor.conversion.for('downcast').add((dispatcher: any) => {
     dispatcher.on(
       'insert:image',
@@ -110,7 +109,6 @@ function ImgFluidClassPlugin(editor: Editor): void {
             const imgElement = [...viewWriter.createRangeIn(viewElement).getItems()].find((item) =>
               item.is('element', 'img'),
             )
-
             if (imgElement) {
               viewWriter.addClass('img-fluid', imgElement)
             }
@@ -119,6 +117,43 @@ function ImgFluidClassPlugin(editor: Editor): void {
       },
       { priority: 'high' },
     )
+  })
+
+  // Also handle images that are already in the content
+  editor.conversion.for('dataDowncast').add((dispatcher: any) => {
+    dispatcher.on(
+      'insert:image',
+      (evt: any, data: any, conversionApi: any) => {
+        const viewWriter = conversionApi.writer
+        const viewElement = conversionApi.mapper.toViewElement(data.item)
+
+        if (viewElement) {
+          if (viewElement.name === 'img') {
+            viewWriter.addClass('img-fluid', viewElement)
+          } else {
+            const imgElement = [...viewWriter.createRangeIn(viewElement).getItems()].find((item) =>
+              item.is('element', 'img'),
+            )
+            if (imgElement) {
+              viewWriter.addClass('img-fluid', imgElement)
+            }
+          }
+        }
+      },
+      { priority: 'high' },
+    )
+  })
+
+  // Handle pasting of images
+  editor.editing.view.document.on('clipboardInput', (evt: any, data: any) => {
+    const viewFragment = data.content
+    const viewWriter = editor.editing.view.change((writer: any) => writer)
+
+    for (const item of viewFragment.getChildren()) {
+      if (item.is('element', 'img')) {
+        viewWriter.addClass('img-fluid', item)
+      }
+    }
   })
 }
 
