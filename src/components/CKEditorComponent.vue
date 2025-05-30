@@ -95,6 +95,33 @@ function CustomUploadAdapterPlugin(editor: Editor): void {
   }
 }
 
+function ImgFluidClassPlugin(editor: Editor): void {
+  editor.conversion.for('downcast').add((dispatcher: any) => {
+    dispatcher.on(
+      'insert:image',
+      (evt: any, data: any, conversionApi: any) => {
+        const viewWriter = conversionApi.writer
+        const viewElement = conversionApi.mapper.toViewElement(data.item)
+
+        if (viewElement) {
+          if (viewElement.name === 'img') {
+            viewWriter.addClass('img-fluid', viewElement)
+          } else {
+            const imgElement = [...viewWriter.createRangeIn(viewElement).getItems()].find((item) =>
+              item.is('element', 'img'),
+            )
+
+            if (imgElement) {
+              viewWriter.addClass('img-fluid', imgElement)
+            }
+          }
+        }
+      },
+      { priority: 'high' },
+    )
+  })
+}
+
 const config = computed<any | null>(() => {
   if (!isLayoutReady.value || !cloud.data.value) {
     return null
@@ -293,7 +320,7 @@ const config = computed<any | null>(() => {
       Underline,
       WordCount,
     ],
-    extraPlugins: [CustomUploadAdapterPlugin],
+    extraPlugins: [CustomUploadAdapterPlugin, ImgFluidClassPlugin],
     balloonToolbar: ['bold', 'italic', '|', 'link', '|', 'bulletedList', 'numberedList'],
     exportPdf: {
       stylesheets: [
@@ -354,7 +381,7 @@ const config = computed<any | null>(() => {
           name: /^.*$/,
           styles: true,
           attributes: true,
-          classes: undefined,
+          classes: true,
         },
       ],
     },
