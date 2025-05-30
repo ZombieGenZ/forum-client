@@ -97,47 +97,29 @@ function ImgFluidClassPlugin(editor: Editor): void {
   // Add the class during downcast (model -> view conversion)
   editor.conversion.for('downcast').add((dispatcher: any) => {
     dispatcher.on(
-      'insert:image',
+      'insert:imageBlock',
       (evt: any, data: any, conversionApi: any) => {
+        const viewFigure = conversionApi.mapper.toViewElement(data.item)
         const viewWriter = conversionApi.writer
-        const viewElement = conversionApi.mapper.toViewElement(data.item)
 
-        if (viewElement) {
-          if (viewElement.name === 'img') {
-            viewWriter.addClass('img-fluid', viewElement)
-          } else {
-            const imgElement = [...viewWriter.createRangeIn(viewElement).getItems()].find((item) =>
-              item.is('element', 'img'),
-            )
-            if (imgElement) {
-              viewWriter.addClass('img-fluid', imgElement)
-            }
+        if (viewFigure) {
+          const imageElement = [...viewWriter.createRangeIn(viewFigure).getItems()].find(
+            (item: any) => item.is('element', 'img'),
+          )
+          if (imageElement) {
+            viewWriter.addClass('img-fluid', imageElement)
           }
         }
       },
       { priority: 'high' },
     )
-  })
 
-  // Also handle images that are already in the content
-  editor.conversion.for('dataDowncast').add((dispatcher: any) => {
     dispatcher.on(
-      'insert:image',
+      'insert:imageInline',
       (evt: any, data: any, conversionApi: any) => {
-        const viewWriter = conversionApi.writer
         const viewElement = conversionApi.mapper.toViewElement(data.item)
-
-        if (viewElement) {
-          if (viewElement.name === 'img') {
-            viewWriter.addClass('img-fluid', viewElement)
-          } else {
-            const imgElement = [...viewWriter.createRangeIn(viewElement).getItems()].find((item) =>
-              item.is('element', 'img'),
-            )
-            if (imgElement) {
-              viewWriter.addClass('img-fluid', imgElement)
-            }
-          }
+        if (viewElement && viewElement.is('element', 'img')) {
+          conversionApi.writer.addClass('img-fluid', viewElement)
         }
       },
       { priority: 'high' },
@@ -146,14 +128,46 @@ function ImgFluidClassPlugin(editor: Editor): void {
 
   // Handle pasting of images
   editor.editing.view.document.on('clipboardInput', (evt: any, data: any) => {
-    const viewFragment = data.content
     const viewWriter = editor.editing.view.change((writer: any) => writer)
+    const viewFragment = data.content
 
     for (const item of viewFragment.getChildren()) {
       if (item.is('element', 'img')) {
         viewWriter.addClass('img-fluid', item)
       }
     }
+  })
+
+  // Handle images that are already in the content
+  editor.conversion.for('dataDowncast').add((dispatcher: any) => {
+    dispatcher.on(
+      'insert:imageBlock',
+      (evt: any, data: any, conversionApi: any) => {
+        const viewFigure = conversionApi.mapper.toViewElement(data.item)
+        const viewWriter = conversionApi.writer
+
+        if (viewFigure) {
+          const imageElement = [...viewWriter.createRangeIn(viewFigure).getItems()].find(
+            (item: any) => item.is('element', 'img'),
+          )
+          if (imageElement) {
+            viewWriter.addClass('img-fluid', imageElement)
+          }
+        }
+      },
+      { priority: 'high' },
+    )
+
+    dispatcher.on(
+      'insert:imageInline',
+      (evt: any, data: any, conversionApi: any) => {
+        const viewElement = conversionApi.mapper.toViewElement(data.item)
+        if (viewElement && viewElement.is('element', 'img')) {
+          conversionApi.writer.addClass('img-fluid', viewElement)
+        }
+      },
+      { priority: 'high' },
+    )
   })
 }
 
